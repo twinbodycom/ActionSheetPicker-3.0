@@ -50,11 +50,21 @@ typedef NS_ENUM(NSInteger, TapAction) {
     TapActionCancel
 };
 
+typedef NS_ENUM(NSInteger, ButtonSide) {
+    ButtonSideUndefined,
+    ButtonSideLeft,
+    ButtonSideRight
+};
+
 typedef void (^ActionBlock)(void);
+
+static NSString *const kButtonSide = @"buttonSide";
 
 static NSString *const kButtonValue = @"buttonValue";
 
 static NSString *const kButtonTitle = @"buttonTitle";
+
+static NSString *const kButtonImageName = @"buttonImageName";
 
 static NSString *const kActionType = @"buttonAction";
 
@@ -107,6 +117,9 @@ static NSString *const kActionTarget = @"buttonActionTarget";
 
 // Adds custom buttons to the left of the UIToolbar that implement specified block
 - (void)addCustomButtonWithTitle:(NSString *)title actionBlock:(ActionBlock)block;
+
+// Adds custom buttons with images to the UIToolbar that implement specified block
+- (void)addCustomButtonWithImageName:(NSString *)imageName buttonSide:(ButtonSide)buttonSide actionBlock:(ActionBlock)block;
 
 // Adds custom buttons to the left of the UIToolbar that implement specified selector
 - (void)addCustomButtonWithTitle:(NSString *)title target:(id)target selector:(SEL)selector;

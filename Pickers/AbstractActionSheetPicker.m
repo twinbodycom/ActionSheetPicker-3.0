@@ -365,6 +365,23 @@ CG_INLINE BOOL isIPhone4() {
     [self.customButtons addObject:buttonDetails];
 }
 
+- (void)addCustomButtonWithImageName:(NSString *)imageName buttonSide:(ButtonSide)buttonSide actionBlock:(ActionBlock)block {
+    if ((buttonSide != ButtonSideLeft) && (buttonSide != ButtonSideRight))
+        buttonSide = ButtonSideLeft;
+    if (!imageName)
+        imageName = @"";
+    if (!block)
+        block = (^{
+        });
+    NSDictionary *buttonDetails = @{
+                                    kButtonSide : @(buttonSide),
+                                    kButtonImageName : imageName,
+                                    kActionType : @(ActionTypeBlock),
+                                    kButtonValue : [block copy]
+                                    };
+    [self.customButtons addObject:buttonDetails];
+}
+
 - (void)addCustomButtonWithTitle:(NSString *)title target:(id)target selector:(SEL)selector {
     if (!title)
         title = @"";
@@ -482,30 +499,11 @@ CG_INLINE BOOL isIPhone4() {
         [barItems addObject:self.cancelBarButtonItem];
     }
 
-    NSInteger index = 0;
-    for (NSDictionary *buttonDetails in self.customButtons) {
-        NSString *buttonTitle = buttonDetails[kButtonTitle];
-
-        UIBarButtonItem *button;
-        if (NSFoundationVersionNumber > NSFoundationVersionNumber_iOS_6_1) {
-            button = [[UIBarButtonItem alloc] initWithTitle:buttonTitle style:UIBarButtonItemStylePlain
-                                                     target:self action:@selector(customButtonPressed:)];
-        }
-        else {
-#pragma clang diagnostic push
-#pragma clang diagnostic ignored "-Wdeprecated-declarations"
-            button = [[UIBarButtonItem alloc] initWithTitle:buttonTitle style:UIBarButtonItemStyleBordered
-                                                     target:self action:@selector(customButtonPressed:)];
-#pragma clang diagnostic pop
-        }
-
-        button.tag = index;
-        [barItems addObject:button];
-        index++;
-    }
+    [self addCustomButtonsTo:barItems onSide:ButtonSideLeft];
 
     UIBarButtonItem *flexSpace = [self createButtonWithType:UIBarButtonSystemItemFlexibleSpace target:nil action:nil];
     [barItems addObject:flexSpace];
+
     if (title) {
         UIBarButtonItem *labelButton;
 
@@ -514,11 +512,67 @@ CG_INLINE BOOL isIPhone4() {
         [barItems addObject:labelButton];
         [barItems addObject:flexSpace];
     }
+
+    [self addCustomButtonsTo:barItems onSide:ButtonSideRight];
+
     [barItems addObject:self.doneBarButtonItem];
 
     [pickerToolbar setItems:barItems animated:NO];
     [pickerToolbar layoutIfNeeded];
     return pickerToolbar;
+}
+
+//  if 'shouldAddToLeft' = 0 then only 'right side' buttons will bw added
+- (void)addCustomButtonsTo:(NSMutableArray *)barItemsArray onSide:(ButtonSide)side {
+    int index = 0;
+    for (NSDictionary *buttonDetails in self.customButtons) {
+        if ([buttonDetails[kButtonSide] longLongValue] == side) {
+            // add button
+            NSString *buttonTitle = buttonDetails[kButtonTitle];
+            NSString *buttonImageName = buttonDetails[kButtonImageName];
+            
+            UIBarButtonItem *button;
+            if (buttonTitle) {
+                if (NSFoundationVersionNumber > NSFoundationVersionNumber_iOS_6_1) {
+                    button = [[UIBarButtonItem alloc] initWithTitle:buttonTitle style:UIBarButtonItemStylePlain
+                                                             target:self action:@selector(customButtonPressed:)];
+                }
+                else {
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wdeprecated-declarations"
+                    button = [[UIBarButtonItem alloc] initWithTitle:buttonTitle style:UIBarButtonItemStyleBordered
+                                                         target:self action:@selector(customButtonPressed:)];
+#pragma clang diagnostic pop
+                }
+            } else if (buttonImageName) {
+                UIImage *image = [UIImage imageNamed:buttonImageName];
+                
+                if (NSFoundationVersionNumber > NSFoundationVersionNumber_iOS_6_1) {
+                    button = [[UIBarButtonItem alloc] initWithImage:image style:UIBarButtonItemStylePlain
+                                                             target:self action:@selector(customButtonPressed:)];
+                }
+                else {
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wdeprecated-declarations"
+                    button = [[UIBarButtonItem alloc] initWithImage:image style:UIBarButtonItemStyleBordered
+                                                         target:self action:@selector(customButtonPressed:)];
+#pragma clang diagnostic pop
+                }
+                
+                button.tintColor = [UIColor whiteColor];
+            }
+            
+            button.tag = [self.customButtons indexOfObject:buttonDetails];
+            [barItemsArray addObject:button];
+            
+            // add fixed space
+            UIBarButtonItem *fixedItem = [[UIBarButtonItem alloc] initWithBarButtonSystemItem:UIBarButtonSystemItemFixedSpace target:nil action:nil];
+            fixedItem.width = 20.0f;
+            [barItemsArray addObject:fixedItem];
+            
+            index++;
+        }
+    }
 }
 
 - (UIBarButtonItem *)createToolbarLabelWithTitle:(NSString *)aTitle
